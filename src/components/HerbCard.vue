@@ -15,8 +15,10 @@ function goDetail() {
   router.push({ name: 'HerbDetail', params: { id: props.herb.id } })
 }
 
+// 优先 Supabase image_url（完整 URL），否则 CDN + image
 function imgSrc() {
-  return `${CDN_URL}${props.herb.image}`
+  if (props.herb.image_url) return props.herb.image_url
+  return `${CDN_URL}${props.herb.image || ''}`
 }
 </script>
 

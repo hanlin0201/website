@@ -1,23 +1,25 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { Search } from 'lucide-vue-next'
 import HerbCard from '@/components/HerbCard.vue'
 import { useHerbList } from '@/composables/useHerbData'
 
 const TAGS = ['全部', '清热', '补气', '安神', '活血', '健脾', '明目', '养心', '解毒']
 
-const { herbs, loading, error, load } = useHerbList()
+const { herbs, loading, error, load, loadMore, hasMore, loadingMore } = useHerbList()
 const keyword = ref('')
 const activeTag = ref('全部')
+const sentinelRef = ref(null)
+let _observer = null
 
 const filteredHerbs = computed(() => {
   let list = herbs.value
   if (keyword.value.trim()) {
     const k = keyword.value.trim().toLowerCase()
     list = list.filter(h =>
-      h.name.toLowerCase().includes(k) ||
-      (h.namePinyin || '').toLowerCase().includes(k) ||
-      (h.tags || []).some(t => t.includes(k))
+      (h.name || '').toLowerCase().includes(k) ||
+      (h.namePinyin || h.name_pinyin || '').toLowerCase().includes(k) ||
+      (h.tags || []).some(t => String(t).includes(k))
     )
   }
   if (activeTag.value !== '全部') {
@@ -26,7 +28,26 @@ const filteredHerbs = computed(() => {
   return list
 })
 
-onMounted(() => load())
+onMounted(() => {
+  load()
+  _observer = new IntersectionObserver(
+    (entries) => {
+      if (!entries[0]?.isIntersecting) return
+      if (hasMore.value && !loadingMore.value) loadMore()
+    },
+    { rootMargin: '100px' }
+  )
+  watch(
+    [() => sentinelRef.value, loading],
+    ([el, ld]) => {
+      if (el && !ld) _observer?.observe(el)
+    },
+    { flush: 'post', immediate: true }
+  )
+})
+onUnmounted(() => {
+  _observer?.disconnect()
+})
 </script>
 
 <template>
@@ -80,6 +101,13 @@ onMounted(() => load())
         >
           <HerbCard :herb="herb" />
         </div>
+      </div>
+
+      <!-- 加载更多 sentinel + 底部 loading（有列表时才展示） -->
+      <div v-if="!loading && !error && filteredHerbs.length > 0" class="flex flex-col items-center gap-2 py-6">
+        <div ref="sentinelRef" class="h-1 w-full" aria-hidden="true" />
+        <div v-if="loadingMore" class="text-sandalwood/60 text-sm">加载更多…</div>
+        <div v-else-if="!hasMore" class="text-sandalwood/50 text-sm">已经到底了</div>
       </div>
 
       <div
