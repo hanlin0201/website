@@ -65,19 +65,18 @@ function goBack() {
     </template>
 
     <template v-else>
-      <div class="w-full h-[42vh] min-h-[300px] bg-paper/90 border-b border-sandalwood/10 relative">
-        <TresCanvas clear-color="#FDFBF7" alpha>
-          <TresPerspectiveCamera :position="[3, 3, 3]" :look-at="[0, 0, 0]" />
-          
-          <OrbitControls :enable-zoom="false" :auto-rotate="false" /> 
-          
-          <Herb3DScene />
-          
-          <TresAmbientLight :intensity="1.5" />
-          <TresDirectionalLight :position="[5, 5, 5]" :intensity="1" />
-        </TresCanvas>
-        
-        <div class="absolute bottom-2 right-4 text-xs text-sandalwood/40 font-serif pointer-events-none">
+      <!-- 3D 容器：显式高度 + shrink-0 防止 flex 压缩；内层 absolute 填满，确保 TresCanvas 父级有尺寸 -->
+      <div class="w-full h-[42vh] min-h-[300px] shrink-0 bg-paper/90 border-b border-sandalwood/10 relative">
+        <div class="tres-canvas-fill absolute inset-0 w-full h-full">
+          <TresCanvas clear-color="#FDFBF7" alpha>
+            <TresPerspectiveCamera :position="[3, 3, 3]" :look-at="[0, 0, 0]" />
+            <OrbitControls :enable-zoom="false" :auto-rotate="false" />
+            <Herb3DScene />
+            <TresAmbientLight :intensity="1.5" />
+            <TresDirectionalLight :position="[5, 5, 5]" :intensity="1" />
+          </TresCanvas>
+        </div>
+        <div class="absolute bottom-2 right-4 z-10 text-xs text-sandalwood/40 font-serif pointer-events-none">
           ⟲ 拖动旋转查看
         </div>
       </div>

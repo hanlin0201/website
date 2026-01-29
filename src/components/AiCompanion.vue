@@ -1,6 +1,9 @@
 <script setup>
-import { ref, nextTick } from 'vue'
+import { ref } from 'vue'
 import { ScrollText, Send, X } from 'lucide-vue-next'
+import { useAuth } from '@/composables/useAuth'
+
+const { logUserHistory } = useAuth()
 
 const open = ref(false)
 const input = ref('')
@@ -22,6 +25,8 @@ function send() {
   setTimeout(() => {
     messages.value.push({ role: 'assistant', content: reply })
   }, 600)
+  // ---------- 隐形埋点：仅已登录用户写入 user_history ----------
+  logUserHistory(text)
 }
 
 function handleKeydown(e) {
