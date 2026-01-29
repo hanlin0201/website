@@ -1,21 +1,20 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { User } from 'lucide-vue-next'
 import AiCompanion from '@/components/AiCompanion.vue'
 import LoginOverlay from '@/components/LoginOverlay.vue'
-import UserProfile from '@/components/UserProfile.vue'
 import { useAuth } from '@/composables/useAuth'
 
+const router = useRouter()
 const { user, gatePassed } = useAuth()
 
 const forceShowLogin = ref(false)
-const showProfileModal = ref(false)
-
 const showLoginOverlay = computed(() => !gatePassed.value || forceShowLogin.value)
 
 function openAuthPanel() {
   if (user.value) {
-    showProfileModal.value = true
+    router.push('/profile')
   } else {
     forceShowLogin.value = true
   }
@@ -34,10 +33,7 @@ function openAuthPanel() {
       @close="forceShowLogin = false"
     />
 
-    <!-- 个人中心模态框 -->
-    <UserProfile v-if="showProfileModal" @close="showProfileModal = false" />
-
-    <!-- 右上角头像入口：已过门禁后显示 -->
+    <!-- 右上角头像入口：已过门禁后显示，已登录跳转 /profile，未登录打开登录遮罩 -->
     <button
       v-if="gatePassed"
       type="button"

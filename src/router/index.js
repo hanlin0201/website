@@ -13,6 +13,12 @@ const routes = [
     component: () => import('@/views/HerbDetailView.vue'),
     meta: { title: '药材详情' },
   },
+  {
+    path: '/profile',
+    name: 'Profile',
+    component: () => import('@/views/ProfileView.vue'),
+    meta: { title: '个人中心', requiresAuth: true },
+  },
 ]
 
 const router = createRouter({
