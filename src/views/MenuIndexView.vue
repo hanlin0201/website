@@ -1,35 +1,30 @@
 <script setup>
-import { useRoute } from 'vue-router'
+import { useRouter } from 'vue-router'
 
-const route = useRoute()
+// 使用 Vue Router 进行页面跳转
+const router = useRouter()
 
+// 点击中央大面板的交互逻辑
 function handleMainPanelClick() {
-  // 中央面板点击反馈（可后续接入 3D 模块）
   console.log('正在连接3D人体交互模型模块...')
+  // 如果未来你想让点击整个面板直接跳转到穴位或某个页面，可以在这里写：
+  // router.push('/acupoints') 
+}
+
+// 专门处理“进入药材”按钮点击
+function goToHerbs() {
+  router.push('/herbs')
+}
+
+// 专门处理“进入食谱”按钮点击 (新增功能)
+function goToRecipes() {
+  router.push('/recipes')
 }
 </script>
 
 <template>
   <div class="menu-index min-h-screen bg-menu">
-    <nav class="menu-navbar">
-      <div class="menu-logo">🌿 药材百科</div>
-      <ul class="menu-nav-links">
-        <li>
-          <RouterLink to="/" :class="['menu-nav-link', { active: route.path === '/' }]">
-            历史记录
-          </RouterLink>
-        </li>
-        <li>
-          <a href="/herbs" target="_blank" rel="noopener noreferrer" class="menu-nav-link">
-            药材介绍
-          </a>
-        </li>
-        <li><a href="#" class="menu-nav-link">食谱推荐</a></li>
-        <li><a href="#" class="menu-nav-link">穴位网站</a></li>
-      </ul>
-      <div class="menu-user-profile">个人档案 / 登录</div>
-    </nav>
-
+    
     <main class="menu-container">
       <section class="menu-portal-hero">
         <div class="menu-hero-content">
@@ -40,10 +35,26 @@ function handleMainPanelClick() {
             <div class="menu-interactive-area">
               <div class="menu-placeholder-text">
                 <span class="menu-pulse-icon">📍</span>
-                <p>[ 动画区域 ]</p>
-                <a href="/herbs" target="_blank" rel="noopener noreferrer" class="menu-enter-btn" @click.stop>
-                  进入药材介绍
-                </a>
+                <p class="mb-6">[ 3D 交互 / 核心功能区 ]</p>
+                
+                <div class="flex gap-4 justify-center">
+                  
+                  <button 
+                    @click.stop="goToHerbs" 
+                    class="menu-enter-btn"
+                  >
+                    📖 药材百科
+                  </button>
+
+                  <button 
+                    @click.stop="goToRecipes" 
+                    class="menu-enter-btn menu-recipe-btn"
+                  >
+                    🍲 食疗方案
+                  </button>
+                  
+                </div>
+
               </div>
             </div>
           </div>
@@ -54,10 +65,12 @@ function handleMainPanelClick() {
 </template>
 
 <style scoped>
+/* 定义变量：保持你原有的配色 */
 .menu-index {
   --menu-bg: #F8F3ED;
   --menu-primary: #8B5E3C;
   --menu-accent: #A67C52;
+  --menu-recipe: #4d7c5b; /* 新增一个代表食疗的绿色变量 */
   --menu-text: #5D4037;
 }
 
@@ -66,50 +79,7 @@ function handleMainPanelClick() {
   color: var(--menu-text);
 }
 
-.menu-navbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.5rem 8%;
-  background: rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(15px);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.menu-logo {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--menu-primary);
-}
-
-.menu-nav-links {
-  list-style: none;
-  display: flex;
-  gap: 40px;
-  margin: 0;
-  padding: 0;
-}
-
-.menu-nav-link {
-  text-decoration: none;
-  color: var(--menu-text);
-  font-weight: 500;
-  font-size: 1.1rem;
-  transition: 0.3s;
-}
-
-.menu-nav-link:hover,
-.menu-nav-link.active {
-  color: var(--menu-primary);
-}
-
-.menu-user-profile {
-  font-size: 0.9rem;
-  opacity: 0.85;
-}
-
+/* 容器样式 */
 .menu-container {
   max-width: 100%;
 }
@@ -118,7 +88,8 @@ function handleMainPanelClick() {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 60px 5%;
+  /* 调整上边距，因为现在上面有 App.vue 的导航栏了 */
+  padding: 40px 5%; 
   min-height: 80vh;
 }
 
@@ -142,6 +113,7 @@ function handleMainPanelClick() {
   text-align: center;
 }
 
+/* 中央面板样式 (保持不变) */
 .menu-main-panel {
   width: 100%;
   max-width: 900px;
@@ -187,20 +159,35 @@ function handleMainPanelClick() {
   100% { transform: scale(1); opacity: 1; }
 }
 
+/* 按钮通用样式 */
 .menu-enter-btn {
-  display: inline-block;
-  margin-top: 20px;
-  padding: 10px 30px;
+  display: inline-flex; /* 让按钮可以并排 */
+  align-items: center;
+  justify-content: center;
+  padding: 12px 30px;
   background-color: var(--menu-primary);
   color: white;
   text-decoration: none;
   border-radius: 20px;
   cursor: pointer;
   font-size: 1rem;
-  transition: background 0.3s;
+  border: none; /* 移除默认边框 */
+  transition: all 0.3s;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
 
 .menu-enter-btn:hover {
   background-color: var(--menu-accent);
+  transform: translateY(-2px);
 }
+
+/* 新增：食谱按钮的特殊样式（绿色系） */
+.menu-recipe-btn {
+  background-color: var(--menu-recipe);
+}
+.menu-recipe-btn:hover {
+  background-color: #3a6345;
+}
+
+/* 这里的 navbar 样式已经被删除，因为移到了 App.vue */
 </style>

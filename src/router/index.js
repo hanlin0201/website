@@ -14,7 +14,7 @@ const routes = [
     meta: { title: '药材介绍' },
   },
   {
-    path: '/herb/:id',
+    path: '/herb/:name',
     name: 'HerbDetail',
     component: () => import('@/views/HerbDetailView.vue'),
     meta: { title: '药材详情' },
@@ -24,6 +24,11 @@ const routes = [
     name: 'Profile',
     component: () => import('@/views/ProfileView.vue'),
     meta: { title: '个人中心', requiresAuth: true },
+  },
+  {
+    path: '/recipes', 
+    name: 'RecipeMarket',
+    component: () => import('@/views/RecipeMarket.vue') // 使用 @ 符号更稳妥
   },
 ]
 
