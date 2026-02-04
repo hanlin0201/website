@@ -20,27 +20,48 @@ const error = ref(null)
 
 // 核心功能：根据名字去数据库查药材
 const fetchHerbByName = async () => {
-  // 1. 从路由参数里获取名字 (注意：是 .name 不是 .id 了)
   const herbName = route.params.name
-
   if (!herbName) return
 
+  // 1. 【秒开逻辑】先检查是不是从列表页带了数据过来
+  const preloadData = history.state.preloadHerb
+
+  if (preloadData && preloadData.name === herbName) {
+    // 如果有数据，直接显示！不用 loading
+    herb.value = preloadData
+    loading.value = false // 立即取消加载状态
+    
+    // 2. 【静默更新】后台悄悄再去查一次最新数据，补全可能缺少的字段
+    // 用户看不见这个过程，体验非常丝滑
+    try {
+      const { data } = await supabase
+        .from('herbs')
+        .select('*')
+        .eq('name', herbName)
+        .single()
+      
+      if (data) {
+        herb.value = data // 查到了就静默替换成最全的数据
+      }
+    } catch (e) {
+      console.error('后台更新数据失败，但不影响展示', e)
+    }
+    return // 结束函数
+  }
+
+  // 3. 【常规逻辑】如果是直接刷新网页（没有来源数据），才显示 Loading
   try {
     loading.value = true
     error.value = null
 
-    // 2. 去 Supabase 查询
     const { data, error: err } = await supabase
       .from('herbs')
       .select('*')
-      .eq('name', herbName) // 查 name 字段
-      .single() // 只取一条
+      .eq('name', herbName)
+      .single()
 
     if (err) throw err
-    
-    // 3. 赋值
     herb.value = data
-    
   } catch (err) {
     console.error('查询药材失败:', err)
     error.value = err

@@ -71,9 +71,9 @@ function openAuthPanel() {
 
     <main class="relative z-0">
       <RouterView v-slot="{ Component }">
-        <transition name="fade" mode="out-in">
+        <KeepAlive include="RecipeMarket">
           <component :is="Component" />
-        </transition>
+        </KeepAlive>
       </RouterView>
     </main>
 
