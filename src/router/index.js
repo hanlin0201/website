@@ -14,11 +14,18 @@ const routes = [
   {
     path: '/herbs',
     name: 'Herbs',
-    component: () => import('@/views/HomeView.vue'),
-    meta: { title: '药材百科' },
+    name: 'MenuIndex',
+    component: () => import('@/views/MenuIndexView.vue'),
+    meta: { title: '中医药百科' },
   },
   {
-    path: '/herb/:id',
+    path: '/herbs',
+    name: 'HerbIntro',
+    component: () => import('@/views/HomeView.vue'),
+    meta: { title: '药材介绍' },
+  },
+  {
+    path: '/herb/:name',
     name: 'HerbDetail',
     component: () => import('@/views/HerbDetailView.vue'),
     meta: { title: '药材详情' },
@@ -34,6 +41,9 @@ const routes = [
     name: 'Acupoints',
     component: () => import('@/views/PortalView.vue'), // 暂时使用门户页面占位
     meta: { title: '穴位网站' },
+    path: '/recipes', 
+    name: 'RecipeMarket',
+    component: () => import('@/views/RecipeMarket.vue') // 使用 @ 符号更稳妥
   },
 ]
 

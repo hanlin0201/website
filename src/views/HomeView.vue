@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useRouter } from 'vue-router' // 1. 引入路由
 import { Search } from 'lucide-vue-next'
 import HerbCard from '@/components/HerbCard.vue'
 import { useHerbList } from '@/composables/useHerbData'
@@ -48,6 +49,9 @@ function getFirstLetter(name) {
   // 查找拼音映射
   return pinyinMap[firstChar] || '#'
 }
+const router = useRouter() // 2. 初始化路由
+
+const TAGS = ['全部', '清热', '补气', '安神', '活血', '健脾', '明目', '养心', '解毒']
 
 const { herbs, loading, error, load, loadMore, hasMore, loadingMore } = useHerbList()
 const keyword = ref('')
@@ -90,6 +94,14 @@ const filteredHerbs = computed(() => {
 function switchFilterMode(mode) {
   filterMode.value = mode
   activeTag.value = '全部'
+// 3. 核心修复：点击卡片跳转详情
+const goToDetail = (herb) => {
+  // 这里的 name: 'HerbDetail' 必须和你 router/index.js 里的 name 一致
+  // params: { name: ... } 对应路径 /herb/:name
+  router.push({ 
+    name: 'HerbDetail', 
+    params: { name: herb.name } 
+  })
 }
 
 onMounted(() => {
@@ -116,7 +128,6 @@ onUnmounted(() => {
 
 <template>
   <div class="min-h-screen pb-24">
-    <!-- 吸顶搜索栏：玻璃拟态 + 木纹覆盖 -->
     <header class="sticky top-0 z-20 glass-search wood-overlay px-4 py-3">
       <div class="max-w-4xl mx-auto">
         <div class="relative">
@@ -165,6 +176,7 @@ onUnmounted(() => {
 
       <!-- 横向滚动胶囊标签 -->
       <div class="mt-2 -mx-4 overflow-x-auto scrollbar-hide">
+      <div class="mt-3 -mx-4 overflow-x-auto scrollbar-hide">
         <div class="flex gap-2 px-4 min-w-max">
           <button
             v-for="tag in currentTags"
@@ -186,22 +198,20 @@ onUnmounted(() => {
     </header>
 
     <main class="max-w-6xl mx-auto px-4 py-6">
-      <!-- 加载与错误 -->
       <div v-if="loading" class="text-center py-16 text-sandalwood/70">加载中…</div>
       <div v-else-if="error" class="text-center py-16 text-cinnabar">加载失败，请重试</div>
 
-      <!-- 瀑布流：手机 2 列，桌面 4 列 -->
       <div v-else class="masonry-columns">
         <div
           v-for="herb in filteredHerbs"
-          :key="herb.id"
-          class="masonry-item"
+          :key="herb.name"
+          class="masonry-item cursor-pointer hover:opacity-90 transition-opacity" 
+          @click="goToDetail(herb)"
         >
           <HerbCard :herb="herb" />
         </div>
       </div>
 
-      <!-- 加载更多 sentinel + 底部 loading（有列表时才展示） -->
       <div v-if="!loading && !error && filteredHerbs.length > 0" class="flex flex-col items-center gap-2 py-6">
         <div ref="sentinelRef" class="h-1 w-full" aria-hidden="true" />
         <div v-if="loadingMore" class="text-sandalwood/60 text-sm">加载更多…</div>
