@@ -40,10 +40,18 @@ function imgSrc() {
     <div class="p-4">
       <h3 class="font-serif font-semibold text-sandalwood text-lg mb-2">{{ herb.name }}</h3>
       <div class="flex flex-wrap gap-1.5">
+        <!-- 显示药材类别 -->
         <span
-          v-for="tag in herb.tags"
-          :key="tag"
+          v-if="herb.classification"
           class="px-2.5 py-0.5 rounded-full text-xs bg-bamboo/15 text-bamboo"
+        >
+          {{ herb.classification }}
+        </span>
+        <!-- 兼容旧的 tags 字段 -->
+        <span
+          v-for="tag in (herb.tags || [])"
+          :key="tag"
+          class="px-2.5 py-0.5 rounded-full text-xs bg-sandalwood/10 text-sandalwood"
         >
           {{ tag }}
         </span>
