@@ -20,6 +20,12 @@ const routes = [
     meta: { title: '药材详情' },
   },
   {
+    path: '/dynasty/:id',
+    name: 'DynastyDetail',
+    component: () => import('@/views/DynastyDetailView.vue'),
+    meta: { title: '朝代详情' },
+  },
+  {
     path: '/profile',
     name: 'Profile',
     component: () => import('@/views/ProfileView.vue'),
