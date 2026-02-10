@@ -24,7 +24,7 @@ const routes = [
     name: 'Acupoints',
     component: () => import('@/views/AcupointView.vue'),
     meta: { title: '经络穴位导航' },
-  }, 
+  },
   {
     path: '/dynasty/:id',
     name: 'DynastyDetail',
