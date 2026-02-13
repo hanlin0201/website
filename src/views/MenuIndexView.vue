@@ -1,12 +1,12 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import gsap from 'gsap'
 import TcmHistorySection from '@/components/TcmHistorySection.vue'
 import { supabase } from '@/supabaseClient'
 import HerbalPairing from '@/components/home/HerbalPairing.vue'
 import MythBuster from '@/components/home/MythBuster.vue'
-import { Sun, Soup, ArrowRight, BookOpen, Utensils, ScrollText, ChevronDown } from 'lucide-vue-next'
+import { Sun, Soup, ArrowRight, BookOpen, Utensils, ScrollText, ChevronDown, ArrowUp } from 'lucide-vue-next'
 
 const router = useRouter()
 
@@ -16,52 +16,47 @@ const termInfo = ref(null)
 const seasonalRecipes = ref([]) 
 const loading = ref(true)
 
-// --- 核心翻页逻辑 (精准防抖版) ---
+// --- 核心翻页逻辑 ---
 const activeIndex = ref(0)
 const isAnimating = ref(false)
 const totalSections = 5 
 
+// --- 底部指引文案 ---
+const nextSectionLabels = [
+  { text: '四时之序 · 查看节气', target: 1 },
+  { text: '草本智慧 · 药食同源', target: 2 },
+  { text: '去伪存真 · 养生避雷', target: 3 },
+  { text: '千年医道 · 中医历史', target: 4 },
+  { text: '', target: -1 }
+]
+
+const currentNextLabel = computed(() => {
+  return nextSectionLabels[activeIndex.value] || { text: '', target: -1 }
+})
+
 const moveTo = (index) => {
   if (index < 0 || index >= totalSections) return
-  
-  // 这里的锁非常重要，防止动画还没做完就触发下一次
   if (isAnimating.value) return
 
   isAnimating.value = true
   activeIndex.value = index
 
-  // GSAP 动画控制
   gsap.to('.scroll-container', {
     y: `-${index * 100}%`, 
-    
-    // 视觉动画时长 1.0秒，保持优雅
     duration: 1.0,         
-    
-    // 强力缓出曲线，起步快，刹车稳
     ease: "power2.out", 
-    
-    // 允许新动画覆盖旧动画
     overwrite: true 
   })
 
-  // 【核心修改】冷却时间设为 800ms
-  // 这个时间足以过滤掉触摸板“划一下”产生的惯性尾巴
-  // 意味着：你划一下，页面动；如果你想动第二下，至少要等 0.8秒
   setTimeout(() => {
     isAnimating.value = false
   }, 800)
 }
 
-// 鼠标/触摸板 滚轮监听
+// --- 滚轮与触摸监听 ---
 const handleWheel = (e) => {
   e.preventDefault() 
-  
-  // 锁定期间，任何信号都忽略
   if (isAnimating.value) return 
-  
-  // 【核心修改】增加触发阈值到 20
-  // 只有比较明显的滑动才会被判定为“翻页”
-  // 触摸板惯性滑动的数值通常很小，会被这里过滤掉
   if (Math.abs(e.deltaY) < 20) return 
   
   if (e.deltaY > 0) {
@@ -71,7 +66,6 @@ const handleWheel = (e) => {
   }
 }
 
-// 手机触摸屏监听
 let touchStartY = 0
 const handleTouchStart = (e) => { touchStartY = e.touches[0].clientY }
 const handleTouchEnd = (e) => {
@@ -79,8 +73,6 @@ const handleTouchEnd = (e) => {
   const touchEndY = e.changedTouches[0].clientY
   const diff = touchStartY - touchEndY
   
-  // 【核心修改】手机端阈值设为 50
-  // 防止手指只是轻轻碰了一下屏幕就翻页
   if (Math.abs(diff) > 50) {
     if (diff > 0) moveTo(activeIndex.value + 1)
     else moveTo(activeIndex.value - 1)
@@ -89,11 +81,21 @@ const handleTouchEnd = (e) => {
 
 // --- 业务跳转 ---
 function goToHistory() { moveTo(4) }
-function scrollToSeasonal() { moveTo(1) }
 function handleMainPanelClick() { router.push('/acupoints') }
 function goToHerbs() { router.push('/herbs') }
 function goToRecipes() { router.push('/recipes') }
 function goToRecipeDetail(id) { router.push({ path: '/recipes', query: { open_id: id } }) }
+
+// --- 关键：监听翻页，控制全局导航栏 ---
+// 这段代码的作用是给 <body> 标签贴上一个标签 'hide-global-nav'
+// App.vue 需要根据这个标签来决定是否隐藏导航栏
+watch(activeIndex, (newVal) => {
+  if (newVal > 0) {
+    document.body.classList.add('hide-global-nav')
+  } else {
+    document.body.classList.remove('hide-global-nav')
+  }
+})
 
 // --- 数据获取 (保持不变) ---
 const SOLAR_TERMS_LOOKUP = [
@@ -156,6 +158,7 @@ onUnmounted(() => {
   window.removeEventListener('wheel', handleWheel)
   window.removeEventListener('touchstart', handleTouchStart)
   window.removeEventListener('touchend', handleTouchEnd)
+  document.body.classList.remove('hide-global-nav')
 })
 </script>
 
@@ -194,7 +197,6 @@ onUnmounted(() => {
               </div>
             </div>
           </div>
-          <div class="scroll-hint" @click="scrollToSeasonal"><span>今日节气</span><ChevronDown class="animate-bounce w-6 h-6" /></div>
         </section>
       </div>
 
@@ -209,17 +211,17 @@ onUnmounted(() => {
                   <h2 class="term-name">{{ termInfo.name }}</h2>
                   <div class="term-principle">{{ termInfo.principle }}</div>
                   <div class="advice-tags">
-                     <div class="advice-row"><span class="tag-label good">宜</span><span class="tag-text">{{ termInfo.recommend_text }}</span></div>
-                     <div class="advice-row"><span class="tag-label bad">忌</span><span class="tag-text">{{ termInfo.avoid_text }}</span></div>
+                      <div class="advice-row"><span class="tag-label good">宜</span><span class="tag-text">{{ termInfo.recommend_text }}</span></div>
+                      <div class="advice-row"><span class="tag-label bad">忌</span><span class="tag-text">{{ termInfo.avoid_text }}</span></div>
                   </div>
                </div>
                <div class="card-divider"></div>
                <div class="card-right">
                   <div class="right-title"><Soup class="w-4 h-4 text-primary" /><span>当季甄选</span></div>
                   <div class="mini-recipe-grid">
-                     <div v-for="recipe in seasonalRecipes" :key="recipe.id" class="mini-recipe" @click="goToRecipeDetail(recipe.id)">
-                        <img :src="recipe.image" class="recipe-thumb" /><div class="recipe-overlay"><span class="recipe-name">{{ recipe.name }}</span></div>
-                     </div>
+                      <div v-for="recipe in seasonalRecipes" :key="recipe.id" class="mini-recipe" @click="goToRecipeDetail(recipe.id)">
+                         <img :src="recipe.image" class="recipe-thumb" /><div class="recipe-overlay"><span class="recipe-name">{{ recipe.name }}</span></div>
+                      </div>
                   </div>
                </div>
             </div>
@@ -243,6 +245,26 @@ onUnmounted(() => {
       ></div>
     </div>
 
+   <transition name="slide-fade">
+  <div v-if="activeIndex > 0" class="sidebar-nav">
+    <div class="sidebar-btn" @click="moveTo(0)" title="回到顶部">
+      <ArrowUp class="w-5 h-5" />
+      <span class="btn-text">顶部</span>
+    </div>
+  </div>
+</transition>
+
+    <transition name="fade">
+      <div 
+        v-if="currentNextLabel.text" 
+        class="next-page-hint" 
+        @click="moveTo(currentNextLabel.target)"
+      >
+        <span class="hint-text">{{ currentNextLabel.text }}</span>
+        <ChevronDown class="animate-bounce w-5 h-5" />
+      </div>
+    </transition>
+
   </div>
 </template>
 
@@ -261,7 +283,6 @@ onUnmounted(() => {
 
 .scroll-container {
   width: 100%; height: 100%;
-  /* GSAP 接管 transform，无需 CSS transition */
 }
 
 .page-section { width: 100%; height: 100vh; }
@@ -270,6 +291,128 @@ onUnmounted(() => {
 .pagination { position: fixed; right: 20px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 15px; z-index: 100; }
 .dot-indicator { width: 10px; height: 10px; background: rgba(0,0,0,0.2); border-radius: 50%; cursor: pointer; transition: all 0.3s; }
 .dot-indicator.active { background: #8B5E3C; transform: scale(1.4); }
+
+/* =========================================
+   新增样式：回到顶部 & 动态指引 (重点修改区域)
+   ========================================= */
+/* =========================================
+   侧边隐藏式导航条 (解决右下角遮挡问题)
+   ========================================= */
+.sidebar-nav {
+  position: fixed;
+  right: 0;           /* 贴紧右侧 */
+  top: 70%;           /* 垂直位置：大概在屏幕下方 70% 的位置，避开中间的圆点导航 */
+  transform: translateY(-50%);
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  /* 默认半透明，不抢视觉 */
+  opacity: 0.6;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  /* 稍微向右缩进一点，只露出一半，鼠标放上去再出来 */
+  transform: translateY(-50%) translateX(60%); 
+}
+
+/* 鼠标悬停在整个区域时，完全显示 */
+.sidebar-nav:hover {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0); /* 滑出来 */
+}
+
+.sidebar-btn {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(5px);
+  padding: 10px 12px 10px 18px; /* 左边宽一点，因为要做圆角 */
+  border-radius: 30px 0 0 30px; /* 左侧圆角，右侧直角贴边 */
+  box-shadow: -4px 4px 15px rgba(0,0,0,0.1);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--primary); /* 棕色 */
+  border: 1px solid rgba(139, 94, 60, 0.15);
+  border-right: none; /* 去掉右边框 */
+  transition: all 0.3s;
+}
+
+.sidebar-btn:hover {
+  background: var(--primary);
+  color: white;
+  padding-right: 20px; /* 悬停时稍微变长一点 */
+}
+
+.sidebar-btn .btn-text {
+  font-size: 0.85rem;
+  font-weight: bold;
+  white-space: nowrap;
+  /* 默认隐藏文字，只显示图标，鼠标放上去才显示文字，或者一直显示看你喜好 */
+  /* 如果想一直显示文字，就把下面这行去掉 */
+  /* display: none; */ 
+}
+
+/* 进出场动画 */
+.slide-fade-enter-active,
+.slide-fade-leave-active {
+  transition: all 0.5s ease;
+}
+
+.slide-fade-enter-from,
+.slide-fade-leave-to {
+  transform: translateY(-50%) translateX(100%); /* 完全缩进右侧 */
+  opacity: 0;
+}
+/* 底部动态指引 - 纯净版（无背景框） */
+.next-page-hint {
+  position: fixed;
+  bottom: 20px; /* 稍微靠下一点 */
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  z-index: 999;
+  cursor: pointer;
+  
+  /* 核心修改：改为主题棕色，无框 */
+  color: var(--primary); 
+  /* 为了防止在复杂背景上看不清，加一层淡淡的白色光晕/阴影 */
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+  font-weight: bold;
+
+  /* 移除之前的背景和边框 */
+  background: transparent;
+  backdrop-filter: none;
+  border: none;
+  padding: 0;
+
+  transition: all 0.3s;
+  opacity: 0.8;
+}
+
+.next-page-hint:hover {
+  opacity: 1;
+  /* 悬停时轻微上浮，而不是变色 */
+  transform: translateX(-50%) translateY(-5px);
+}
+
+.hint-text {
+  font-size: 0.95rem;
+  letter-spacing: 0.15em;
+  font-family: 'Noto Serif SC', serif;
+}
+
+/* Vue Transition */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.5s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
 
 /* =========================================
    2. 内容样式 (保持原样)
@@ -321,14 +464,11 @@ onUnmounted(() => {
 .mini-recipe:hover .recipe-thumb { transform: scale(1.1); }
 .recipe-overlay { position: absolute; bottom: 0; width: 100%; background: linear-gradient(transparent, rgba(0,0,0,0.7)); padding: 8px; color: white; text-align: center; font-size: 0.8rem; }
 .bg-overlay-noise { position: absolute; inset: 0; background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E"); z-index: 1; pointer-events: none; }
-.scroll-hint { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; color: var(--primary); cursor: pointer; opacity: 0.6; }
 .title-decoration { display: flex; align-items: center; gap: 10px; margin: 10px 0; opacity: 0.6; }
 .title-decoration .line { width: 40px; height: 1px; background: var(--primary); }
 .title-decoration .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
 .animate-fade-in-down { animation: fadeInDown 1s ease-out; }
 .animate-fade-in-up { animation: fadeInUp 1s ease-out; }
-@keyframes fadeInDown { from { opacity: 0; transform: translateY(-30px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
 @media (max-width: 768px) {
   .menu-entry-grid { flex-direction: column; gap: 40px; }
   .seasonal-card { flex-direction: column; gap: 20px; padding: 20px; }
