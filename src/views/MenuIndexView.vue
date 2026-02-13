@@ -1,6 +1,6 @@
 <script setup>
-import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, onUnmounted, watch, computed, nextTick } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import gsap from 'gsap'
 import TcmHistorySection from '@/components/TcmHistorySection.vue'
 import { supabase } from '@/supabaseClient'
@@ -9,6 +9,7 @@ import MythBuster from '@/components/home/MythBuster.vue'
 import { Sun, Soup, ArrowRight, BookOpen, Utensils, ScrollText, ChevronDown, ArrowUp } from 'lucide-vue-next'
 
 const router = useRouter()
+const route = useRoute()
 
 // --- 数据状态 ---
 const currentTermName = ref('')
@@ -87,8 +88,6 @@ function goToRecipes() { router.push('/recipes') }
 function goToRecipeDetail(id) { router.push({ path: '/recipes', query: { open_id: id } }) }
 
 // --- 关键：监听翻页，控制全局导航栏 ---
-// 这段代码的作用是给 <body> 标签贴上一个标签 'hide-global-nav'
-// App.vue 需要根据这个标签来决定是否隐藏导航栏
 watch(activeIndex, (newVal) => {
   if (newVal > 0) {
     document.body.classList.add('hide-global-nav')
@@ -96,6 +95,15 @@ watch(activeIndex, (newVal) => {
     document.body.classList.remove('hide-global-nav')
   }
 })
+
+// --- 从朝代详情返回时定位到历史模块（第 5 屏）；必须在 DOM 挂载后执行 ---
+watch(
+  () => ({ path: route.path, history: route.query.history }),
+  (curr) => {
+    if (curr.path === '/' && curr.history === 'open') nextTick(() => moveTo(4))
+  },
+  { immediate: true }
+)
 
 // --- 数据获取 (保持不变) ---
 const SOLAR_TERMS_LOOKUP = [
@@ -149,6 +157,7 @@ const fetchSeasonalData = async () => {
 
 onMounted(() => { 
   fetchSeasonalData()
+  if (route.path === '/' && route.query.history === 'open') nextTick(() => moveTo(4))
   window.addEventListener('wheel', handleWheel, { passive: false })
   window.addEventListener('touchstart', handleTouchStart, { passive: true })
   window.addEventListener('touchend', handleTouchEnd, { passive: true })
@@ -245,14 +254,14 @@ onUnmounted(() => {
       ></div>
     </div>
 
-   <transition name="slide-fade">
-  <div v-if="activeIndex > 0" class="sidebar-nav">
-    <div class="sidebar-btn" @click="moveTo(0)" title="回到顶部">
-      <ArrowUp class="w-5 h-5" />
-      <span class="btn-text">顶部</span>
-    </div>
-  </div>
-</transition>
+    <transition name="slide-fade">
+      <div v-if="activeIndex > 0" class="sidebar-nav">
+        <div class="sidebar-btn" @click="moveTo(0)" title="回到顶部">
+          <ArrowUp class="w-5 h-5" />
+          <span class="btn-text">顶部</span>
+        </div>
+      </div>
+    </transition>
 
     <transition name="fade">
       <div 
@@ -293,65 +302,54 @@ onUnmounted(() => {
 .dot-indicator.active { background: #8B5E3C; transform: scale(1.4); }
 
 /* =========================================
-   新增样式：回到顶部 & 动态指引 (重点修改区域)
-   ========================================= */
-/* =========================================
    侧边隐藏式导航条 (解决右下角遮挡问题)
    ========================================= */
 .sidebar-nav {
   position: fixed;
-  right: 0;           /* 贴紧右侧 */
-  top: 70%;           /* 垂直位置：大概在屏幕下方 70% 的位置，避开中间的圆点导航 */
-  transform: translateY(-50%);
+  right: 0;
+  top: 70%;
+  transform: translateY(-50%) translateX(60%);
   z-index: 999;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  /* 默认半透明，不抢视觉 */
   opacity: 0.6;
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  /* 稍微向右缩进一点，只露出一半，鼠标放上去再出来 */
-  transform: translateY(-50%) translateX(60%); 
 }
 
-/* 鼠标悬停在整个区域时，完全显示 */
 .sidebar-nav:hover {
   opacity: 1;
-  transform: translateY(-50%) translateX(0); /* 滑出来 */
+  transform: translateY(-50%) translateX(0);
 }
 
 .sidebar-btn {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(5px);
-  padding: 10px 12px 10px 18px; /* 左边宽一点，因为要做圆角 */
-  border-radius: 30px 0 0 30px; /* 左侧圆角，右侧直角贴边 */
+  padding: 10px 12px 10px 18px;
+  border-radius: 30px 0 0 30px;
   box-shadow: -4px 4px 15px rgba(0,0,0,0.1);
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 6px;
-  color: var(--primary); /* 棕色 */
+  color: var(--primary);
   border: 1px solid rgba(139, 94, 60, 0.15);
-  border-right: none; /* 去掉右边框 */
+  border-right: none;
   transition: all 0.3s;
 }
 
 .sidebar-btn:hover {
   background: var(--primary);
   color: white;
-  padding-right: 20px; /* 悬停时稍微变长一点 */
+  padding-right: 20px;
 }
 
 .sidebar-btn .btn-text {
   font-size: 0.85rem;
   font-weight: bold;
   white-space: nowrap;
-  /* 默认隐藏文字，只显示图标，鼠标放上去才显示文字，或者一直显示看你喜好 */
-  /* 如果想一直显示文字，就把下面这行去掉 */
-  /* display: none; */ 
 }
 
-/* 进出场动画 */
 .slide-fade-enter-active,
 .slide-fade-leave-active {
   transition: all 0.5s ease;
@@ -359,13 +357,14 @@ onUnmounted(() => {
 
 .slide-fade-enter-from,
 .slide-fade-leave-to {
-  transform: translateY(-50%) translateX(100%); /* 完全缩进右侧 */
+  transform: translateY(-50%) translateX(100%);
   opacity: 0;
 }
-/* 底部动态指引 - 纯净版（无背景框） */
+
+/* 底部动态指引 */
 .next-page-hint {
   position: fixed;
-  bottom: 20px; /* 稍微靠下一点 */
+  bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -374,26 +373,19 @@ onUnmounted(() => {
   gap: 6px;
   z-index: 999;
   cursor: pointer;
-  
-  /* 核心修改：改为主题棕色，无框 */
-  color: var(--primary); 
-  /* 为了防止在复杂背景上看不清，加一层淡淡的白色光晕/阴影 */
+  color: var(--primary);
   text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
   font-weight: bold;
-
-  /* 移除之前的背景和边框 */
   background: transparent;
   backdrop-filter: none;
   border: none;
   padding: 0;
-
   transition: all 0.3s;
   opacity: 0.8;
 }
 
 .next-page-hint:hover {
   opacity: 1;
-  /* 悬停时轻微上浮，而不是变色 */
   transform: translateX(-50%) translateY(-5px);
 }
 
@@ -403,7 +395,6 @@ onUnmounted(() => {
   font-family: 'Noto Serif SC', serif;
 }
 
-/* Vue Transition */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.5s ease;
@@ -469,6 +460,8 @@ onUnmounted(() => {
 .title-decoration .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
 .animate-fade-in-down { animation: fadeInDown 1s ease-out; }
 .animate-fade-in-up { animation: fadeInUp 1s ease-out; }
+@keyframes fadeInDown { from { opacity: 0; transform: translateY(-30px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
 @media (max-width: 768px) {
   .menu-entry-grid { flex-direction: column; gap: 40px; }
   .seasonal-card { flex-direction: column; gap: 20px; padding: 20px; }
