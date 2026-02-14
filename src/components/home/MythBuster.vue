@@ -1,12 +1,12 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { createClient } from '@supabase/supabase-js'
 import { HelpCircle, CheckCircle2, XCircle, RotateCw, Loader2 } from 'lucide-vue-next'
+import { supabase } from '@/supabaseClient' // ✅ 统一使用导出的实例
 
 // --- 1. 配置 Supabase ---
 const SUPABASE_URL = 'https://htrtcaswqydnfvgwernh.supabase.co'
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0cnRjYXN3cXlkbmZ2Z3dlcm5oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MDYyNDgsImV4cCI6MjA4NTE4MjI0OH0.N9NEwFKZHtiEITimRsaMEQ4hS-rZ2XdR2pLWSG4GC68'
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
+
 
 // --- 2. 状态管理 ---
 const myths = ref([])          // 当前显示的3条数据
